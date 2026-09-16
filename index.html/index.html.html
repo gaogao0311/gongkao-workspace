@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>公考学习工作台</title>
+<!-- 本工作台通过 WorkBuddy「资料库」skill 搭建与部署；打卡/待办等个人数据保存在本机浏览器 localStorage，不上传服务器 -->
+<style>
+:root{
+  --pink:#F9DCE6; --pink-d:#E8A2BC;
+  --mint:#D7ECDC; --mint-d:#93CDA9;
+  --yellow:#FCF0D2; --yellow-d:#DDB86A;
+  --lav:#E6E1F5; --lav-d:#AB9FD3;
+  --blue:#DBE9F6; --blue-d:#93B9D9;
+  --ink:#6E5F6C; --ink-2:#9A8B97; --ink-3:#C4B6C1;
+  --bg:#FBF6F1; --card:#FFFFFF;
+  --danger:#E2848F;
+  --shadow:0 6px 18px rgba(214,186,199,.28);
+  --shadow-sm:0 3px 10px rgba(214,186,199,.22);
+  --radius:22px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Roboto,sans-serif;
+  background:var(--bg); color:var(--ink); min-height:100vh; overflow-x:hidden;
+  padding-bottom:calc(24px + env(safe-area-inset-bottom));
+}
+/* 背景漂浮小装饰 */
+.bg-deco{position:fixed;inset:0;pointer-events:none;z-index:0;}
+.bg-deco svg{position:absolute;opacity:.5;}
+.deco-1{top:6%;left:4%;width:34px;}
+.deco-2{top:18%;right:5%;width:28px;}
+.deco-3{top:52%;left:2.5%;width:24px;}
+.deco-4{bottom:12%;right:6%;width:32px;}
+.deco-5{top:38%;left:88%;width:22px;}
+
+.wrap{position:relative;z-index:1;max-width:1060px;margin:0 auto;padding:18px 16px 0;}
+
+/* ===== 顶部标题 ===== */
+header{display:flex;align-items:center;justify-content:space-between;padding:6px 4px 16px;}
+.title-box{display:flex;align-items:center;gap:12px;}
+.title-icon{width:44px;height:44px;flex:none;}
+h1{font-size:24px;font-weight:700;letter-spacing:1px;color:var(--ink);}
+h1 .accent{color:var(--pink-d);}
+.sub-title{font-size:12px;color:var(--ink-2);margin-top:2px;letter-spacing:2px;}
+.mascot{width:64px;height:64px;flex:none;}
+.sync-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--ink-2);
+  background:var(--card);border-radius:99px;padding:3px 10px;box-shadow:var(--shadow-sm);margin-left:auto;margin-right:10px;}
+
+/* ===== 布局 ===== */
+.layout{display:grid;grid-template-columns:1fr 250px;gap:16px;align-items:start;}
+.col-main{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;}
+.card-full{grid-column:1/-1;}
+.card h2{font-size:15px;font-weight:700;display:flex;align-items:center;gap:7px;margin-bottom:12px;}
+.card h2 .h-ic{width:18px;height:18px;flex:none;}
+
+/* ===== 倒计时 ===== */
+.card-countdown{
+  background:linear-gradient(120deg,var(--pink) 0%,var(--lav) 60%,var(--blue) 100%);
+  display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+}
+.cd-left{display:flex;align-items:center;gap:14px;}
+.cd-num{font-size:52px;font-weight:800;color:var(--ink);line-height:1;letter-spacing:1px;}
+.cd-num small{font-size:15px;font-weight:600;color:var(--ink-2);margin-left:4px;}
+.cd-label{font-size:13px;color:var(--ink);line-height:1.7;}
+.cd-label b{font-size:15px;}
+.cd-note{font-size:11px;color:var(--ink-2);}
+.cd-deco{width:76px;height:76px;flex:none;}
+
+/* ===== 打卡面板 ===== */
+.checkin-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+.ck-item{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  border:2px solid var(--ink-3);border-radius:18px;padding:12px 4px 10px;
+  cursor:pointer;user-select:none;min-height:44px;background:#fff;
+  transition:all .18s ease;
+}
+.ck-item .ck-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  color:#fff;transition:all .18s ease;}
+.ck-item .ck-dot svg{width:16px;height:16px;opacity:0;transform:scale(.4);transition:all .18s ease;}
+.ck-item span{font-size:13px;font-weight:600;color:var(--ink);}
+.ck-item.done{border-color:transparent;}
+.ck-item.done .ck-dot svg{opacity:1;transform:scale(1);}
+.ck-item.done span{color:var(--ink-2);}
+.ck-item:active{transform:scale(.95);}
+.ck-c-yan{background:var(--pink-d);} .ck-c-yan.done{background:var(--pink);border-color:var(--pink-d);}
+.ck-c-pan{background:var(--blue-d);} .ck-c-pan.done{background:var(--blue);border-color:var(--blue-d);}
+.ck-c-zil{background:var(--mint-d);} .ck-c-zil.done{background:var(--mint);border-color:var(--mint-d);}
+.ck-c-shu{background:var(--yellow-d);} .ck-c-shu.done{background:var(--yellow);border-color:var(--yellow-d);}
+.ck-c-chang{background:var(--lav-d);} .ck-c-chang.done{background:var(--lav);border-color:var(--lav-d);}
+.ck-summary{margin-top:12px;font-size:12px;color:var(--ink-2);display:flex;align-items:center;gap:6px;}
+.ck-bar{flex:1;height:8px;border-radius:99px;background:#F3EAF0;overflow:hidden;}
+.ck-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--pink-d),var(--lav-d));transition:width .3s ease;}
+
+/* ===== 今日任务 ===== */
+.todo-input-row{display:flex;gap:8px;margin-bottom:12px;}
+.todo-input{
+  flex:1;border:2px solid #F0E4EC;border-radius:14px;padding:11px 14px;font-size:16px;
+  color:var(--ink);outline:none;background:#FDF9FC;min-width:0;transition:border .2s;
+}
+.todo-input:focus{border-color:var(--pink-d);}
+.todo-input::placeholder{color:var(--ink-3);}
+.btn-add{
+  flex:none;border:none;border-radius:14px;background:var(--pink-d);color:#fff;font-weight:700;
+  padding:0 18px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:4px;min-height:46px;
+  transition:transform .15s ease,filter .15s;
+}
+.btn-add:active{transform:scale(.94);}
+.btn-add:hover{filter:brightness(1.05);}
+.todo-list{list-style:none;display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;}
+.todo-item{
+  display:flex;align-items:center;gap:10px;background:#FDF9FC;border-radius:14px;padding:10px 12px;
+  border:2px solid transparent;animation:pop .25s ease;
+}
+@keyframes pop{from{transform:scale(.96);opacity:0;}to{transform:scale(1);opacity:1;}}
+.todo-item.done-t{opacity:.55;}
+.todo-check{
+  width:26px;height:26px;border-radius:50%;border:2px solid var(--ink-3);flex:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;background:#fff;transition:all .15s;
+}
+.todo-check svg{width:14px;height:14px;color:#fff;opacity:0;transform:scale(.4);transition:all .15s;}
+.todo-item.done-t .todo-check{background:var(--mint-d);border-color:var(--mint-d);}
+.todo-item.done-t .todo-check svg{opacity:1;transform:scale(1);}
+.todo-text{flex:1;font-size:14px;line-height:1.45;word-break:break-all;}
+.todo-item.done-t .todo-text{text-decoration:line-through;color:var(--ink-2);}
+.todo-tag{flex:none;font-size:10px;border-radius:99px;padding:2px 8px;font-weight:600;}
+.tag-today{background:var(--blue);color:var(--blue-d);}
+.tag-carry{background:#FBE3E6;color:var(--danger);}
+.tag-done{background:var(--mint);color:var(--mint-d);}
+.todo-del{flex:none;width:30px;height:30px;border:none;background:transparent;cursor:pointer;color:var(--ink-3);
+  display:flex;align-items:center;justify-content:center;border-radius:10px;min-width:30px;}
+.todo-del:hover{background:#FBE3E6;color:var(--danger);}
+.todo-del svg{width:15px;height:15px;}
+.todo-empty{text-align:center;color:var(--ink-3);font-size:13px;padding:18px 0;}
+
+/* ===== 四级卡片 ===== */
+.card-cet4{background:linear-gradient(150deg,#FFF6FB 0%,var(--blue) 100%);display:flex;flex-direction:column;gap:10px;}
+.cet-head{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.cet-ring-box{position:relative;width:86px;height:86px;flex:none;}
+.cet-ring-box svg{transform:rotate(-90deg);}
+.cet-ring-txt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.cet-ring-txt b{font-size:20px;color:var(--ink);}
+.cet-ring-txt span{font-size:10px;color:var(--ink-2);}
+.cet-info{flex:1;min-width:0;}
+.cet-info p{font-size:12px;color:var(--ink-2);line-height:1.7;margin-bottom:8px;}
+.cet-info p b{color:var(--blue-d);font-size:13px;}
+.cet-btns{display:flex;gap:8px;}
+.cet-btn{
+  flex:1;min-height:42px;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;
+  transition:transform .15s;
+}
+.cet-btn:active{transform:scale(.94);}
+.cet-minus{background:#fff;color:var(--blue-d);border:2px solid var(--blue);}
+.cet-plus{background:var(--blue-d);color:#fff;}
+.cet-quote{font-size:11px;color:var(--ink-2);background:rgba(255,255,255,.65);border-radius:10px;padding:6px 10px;}
+
+/* ===== 侧边名言 ===== */
+.col-side{display:flex;flex-direction:column;gap:16px;}
+.card-quote{
+  background:linear-gradient(180deg,var(--yellow) 0%,#FDE9EF 100%);
+  display:flex;flex-direction:column;align-items:center;gap:12px;padding:22px 16px;
+}
+.quote-vertical{
+  writing-mode:vertical-rl;font-size:16px;font-weight:700;letter-spacing:6px;line-height:2;color:var(--ink);
+  min-height:190px;display:flex;align-items:center;
+}
+.quote-en{font-size:10px;color:var(--ink-2);letter-spacing:1px;text-align:center;line-height:1.6;}
+.quote-deco{width:54px;height:54px;flex:none;}
+
+/* ===== 数据备份卡 ===== */
+.card-data{display:flex;flex-direction:column;gap:8px;}
+.data-btns{display:flex;flex-direction:column;gap:8px;}
+.btn-soft{
+  min-height:42px;border:none;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:6px;transition:transform .15s,filter .15s;
+}
+.btn-soft:active{transform:scale(.96);}
+.btn-soft svg{width:15px;height:15px;}
+.btn-export{background:var(--mint);color:#5E9B78;}
+.btn-import{background:var(--blue);color:#6E97BC;}
+.btn-clear{background:#FBE3E6;color:var(--danger);}
+.btn-soft:hover{filter:brightness(1.04);}
+.hint-30{font-size:11px;color:var(--yellow-d);display:none;align-items:center;gap:4px;}
+
+/* ===== 游戏入口浮动按钮 ===== */
+.btn-game-float{
+  position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:20;
+  width:64px;height:64px;border-radius:50%;border:none;cursor:pointer;
+  background:linear-gradient(140deg,#FFD3DD,#FFE9C7);
+  box-shadow:0 8px 22px rgba(232,162,188,.45);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  transition:transform .18s ease;
+}
+.btn-game-float:hover{transform:scale(1.08) rotate(-4deg);}
+.btn-game-float:active{transform:scale(.92);}
+.btn-game-float svg{width:26px;height:26px;}
+.btn-game-float i{font-style:normal;font-size:9px;font-weight:700;color:#D67A93;}
+
+/* ===== 游戏弹窗 ===== */
+.game-mask{
+  position:fixed;inset:0;z-index:50;background:rgba(110,95,108,.45);backdrop-filter:blur(4px);
+  display:none;align-items:center;justify-content:center;padding:14px;
+}
+.game-mask.open{display:flex;}
+.game-panel{
+  background:linear-gradient(170deg,#FFF3F7,#F2F8F3);border-radius:26px;box-shadow:0 18px 50px rgba(110,80,95,.35);
+  padding:14px;display:flex;flex-direction:column;gap:10px;max-width:96vw;
+  animation:rise .25s ease;
+}
+@keyframes rise{from{transform:translateY(24px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.game-head{display:flex;align-items:center;gap:10px;}
+.game-head h3{font-size:15px;font-weight:700;flex:1;}
+.game-score{font-size:12px;color:var(--ink-2);background:#fff;border-radius:99px;padding:4px 12px;box-shadow:var(--shadow-sm);}
+.game-score b{color:var(--pink-d);font-size:14px;}
+.game-close{width:34px;height:34px;border:none;border-radius:50%;background:#fff;color:var(--ink-2);
+  cursor:pointer;font-size:16px;box-shadow:var(--shadow-sm);}
+#gameCanvas{border-radius:18px;background:#FDF8F4;touch-action:none;display:block;width:100%;height:auto;}
+.game-foot{display:flex;align-items:center;gap:10px;justify-content:space-between;}
+.next-box{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-2);}
+#nextCanvas{width:44px;height:44px;border-radius:12px;background:#fff;box-shadow:var(--shadow-sm);}
+.btn-restart{border:none;border-radius:12px;background:var(--pink-d);color:#fff;font-weight:700;
+  padding:10px 18px;font-size:13px;cursor:pointer;}
+.game-tip{font-size:10px;color:var(--ink-3);text-align:center;}
+
+/* ===== Toast ===== */
+#toast{
+  position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(16px);
+  background:rgba(110,95,108,.92);color:#fff;font-size:13px;padding:10px 20px;border-radius:99px;
+  opacity:0;pointer-events:none;transition:all .25s ease;z-index:99;max-width:86vw;text-align:center;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ===== 移动端 ===== */
+@media (max-width:768px){
+  h1{font-size:20px;}
+  .mascot{width:52px;height:52px;}
+  .layout{grid-template-columns:1fr;}
+  .col-main{grid-template-columns:1fr;}
+  .checkin-grid{grid-template-columns:repeat(3,1fr);}
+  .checkin-grid .ck-item:nth-child(4){grid-column:1/2;}
+  .cd-num{font-size:42px;}
+  .quote-vertical{writing-mode:horizontal-tb;min-height:0;letter-spacing:3px;line-height:1.8;
+    text-align:center;justify-content:center;}
+  .card-quote{padding:16px;}
+  .todo-list{max-height:none;}
+  .sync-badge{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- 背景漂浮装饰 -->
+<div class="bg-deco">
+  <svg class="deco-1" viewBox="0 0 32 32"><path d="M16 3c4 5 8 8 8 14a8 8 0 0 1-16 0c0-6 4-9 8-14z" fill="#F6C6D3"/><path d="M16 10v12M11 16c2-2 8-2 10 0" stroke="#E8A2BC" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
+  <svg class="deco-2" viewBox="0 0 32 32"><path d="M16 2l3.7 7.6 8.3 1.2-6 5.9 1.4 8.3L16 21.2 8.6 25l1.4-8.3-6-5.9 8.3-1.2z" fill="#FCF0D2" stroke="#DDB86A" stroke-width="1.4" stroke-linejoin="round"/></svg>
+  <svg class="deco-3" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="#D7ECDC"/><path d="M16 9v7l5 3" stroke="#93CDA9" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+  <svg class="deco-4" viewBox="0 0 32 32"><path d="M16 27S4 19 4 11.5C4 7.4 7.4 4 11.5 4c1.8 0 3.4.9 4.5 2.3A5.9 5.9 0 0 1 20.5 4C24.6 4 28 7.4 28 11.5 28 19 16 27 16 27z" fill="#F9DCE6" stroke="#E8A2BC" stroke-width="1.5"/></svg>
+  <svg class="deco-5" viewBox="0 0 32 32"><circle cx="16" cy="16" r="10" fill="#E6E1F5"/><circle cx="12" cy="14" r="1.6" fill="#AB9FD3"/><circle cx="20" cy="14" r="1.6" fill="#AB9FD3"/><path d="M12 19c2 2 6 2 8 0" stroke="#AB9FD3" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
+</div>
+
+<div class="wrap">
+
+  <!-- 1. 顶部标题 -->
+  <header>
+    <div class="title-box">
+      <svg class="title-icon" viewBox="0 0 48 48">
+        <rect x="6" y="10" width="30" height="30" rx="5" fill="#E8A2BC"/>
+        <rect x="12" y="6" width="30" height="30" rx="5" fill="#FFF" stroke="#E8A2BC" stroke-width="2.4"/>
+        <path d="M20 13v16M17 29c2-1.6 4-1.6 6 0M17 21c2-1.6 4-1.6 6 0" stroke="#E8A2BC" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <path d="M14 34h22" stroke="#F3C4D4" stroke-width="2.4" stroke-linecap="round"/>
+        <circle cx="38" cy="12" r="4.5" fill="#DDB86A"/>
+      </svg>
+      <div>
+        <h1>公考<span class="accent">学习工作台</span></h1>
+        <div class="sub-title">STUDY · WITH · KITTY · 每天进步一点点</div>
+      </div>
+    </div>
+    <span class="sync-badge"><svg width="12" height="12" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="#93CDA9" stroke-width="2"/><path d="M5.5 8l2 2 3.5-4" stroke="#93CDA9" stroke-width="2" fill="none" stroke-linecap="round"/></svg>数据保存在本机</span>
+    <!-- 可爱 kitty 吉祥物 -->
+    <svg class="mascot" viewBox="0 0 72 72">
+      <ellipse cx="30" cy="60" rx="20" ry="4" fill="#F3E4EC"/>
+      <path d="M14 30c0-8 4-12 7-14l3 7M46 30c0-8-4-12-7-14l-3 7" fill="#FFF" stroke="#C9B4C2" stroke-width="2"/>
+      <ellipse cx="30" cy="36" rx="18" ry="16" fill="#FFF" stroke="#C9B4C2" stroke-width="2"/>
+      <ellipse cx="24" cy="35" rx="2.4" ry="3" fill="#5C5460"/>
+      <ellipse cx="36" cy="35" rx="2.4" ry="3" fill="#5C5460"/>
+      <path d="M29 41c.8 1.4 2.2 1.4 3 0" stroke="#E8A2BC" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <ellipse cx="19" cy="40" rx="2" ry="1.2" fill="#F9D3DE"/>
+      <ellipse cx="41" cy="40" rx="2" ry="1.2" fill="#F9D3DE"/>
+      <path d="M12 36l-7-2M12 40l-7 2M48 36l7-2M48 40l7 2" stroke="#C9B4C2" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M40 20c1-6 7-8 10-5 3-3 9-1 10 5 0 0-4 4-10 4s-10-4-10-4z" fill="#F08BA8"/>
+      <circle cx="45" cy="18" r="2" fill="#FBC7D6"/><circle cx="55" cy="18" r="2" fill="#FBC7D6"/>
+    </svg>
+  </header>
+
+  <div class="layout">
+    <div class="col-main">
+
+      <!-- 2. 学习倒计时卡片 -->
+      <section class="card card-full card-countdown">
+        <div class="cd-left">
+          <div class="cd-num" id="cdNum">--<small>天</small></div>
+          <div class="cd-label">
+            <b>距离广东省考</b><br>
+            <span id="cdDate">--</span>
+            <div class="cd-note">* 日期为预计时间，以官方公告为准</div>
+          </div>
+        </div>
+        <svg class="cd-deco" viewBox="0 0 80 80">
+          <rect x="10" y="14" width="60" height="56" rx="10" fill="#FFF"/>
+          <rect x="10" y="14" width="60" height="16" rx="8" fill="#E8A2BC"/>
+          <rect x="24" y="8" width="6" height="12" rx="3" fill="#C9B4C2"/>
+          <rect x="50" y="8" width="6" height="12" rx="3" fill="#C9B4C2"/>
+          <text x="40" y="56" text-anchor="middle" font-size="20" font-weight="bold" fill="#6E5F6C" id="cdCal">GO!</text>
+        </svg>
+      </section>
+
+      <!-- 3. 学习打卡面板 -->
+      <section class="card card-full">
+        <h2><svg class="h-ic" viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" rx="4" fill="#93CDA9"/><path d="M6.5 10.5l2.3 2.3 4.7-5.3" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg>今日行测打卡</h2>
+        <div class="checkin-grid" id="checkinGrid"></div>
+        <div class="ck-summary">
+          <span id="ckSummaryTxt">今日已完成 0/5</span>
+          <div class="ck-bar"><i id="ckBar" style="width:0%"></i></div>
+        </div>
+      </section>
+
+      <!-- 4. 今日任务 -->
+      <section class="card">
+        <h2><svg class="h-ic" viewBox="0 0 20 20"><rect x="4" y="2.5" width="12" height="15" rx="3.5" fill="#E8A2BC"/><path d="M7 7h6M7 10.5h6M7 14h3.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>今日任务</h2>
+        <div class="todo-input-row">
+          <input class="todo-input" id="todoInput" type="text" maxlength="60" placeholder="记下今天要做的事吧～">
+          <button class="btn-add" id="btnAddTodo" aria-label="添加任务">
+            <svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 2v10M2 7h10" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>添加
+          </button>
+        </div>
+        <ul class="todo-list" id="todoList"></ul>
+      </section>
+
+      <!-- 5. 四级备考小卡片 -->
+      <section class="card card-cet4">
+        <h2><svg class="h-ic" viewBox="0 0 20 20"><path d="M10 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L10 14.4 5.2 16.9l.9-5.4L2.2 7.7l5.4-.8z" fill="#93B9D9"/></svg>四级小卡片</h2>
+        <div class="cet-head">
+          <div class="cet-ring-box">
+            <svg width="86" height="86" viewBox="0 0 86 86">
+              <circle cx="43" cy="43" r="34" fill="none" stroke="#E3EDF6" stroke-width="9"/>
+              <circle id="cetRing" cx="43" cy="43" r="34" fill="none" stroke="#93B9D9" stroke-width="9"
+                stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6"/>
+            </svg>
+            <div class="cet-ring-txt"><b id="cetWords">0</b><span>/ 50 词</span></div>
+          </div>
+          <div class="cet-info">
+            <p>今日单词打卡 <b id="cetDate">--</b></p>
+            <div class="cet-btns">
+              <button class="cet-btn cet-minus" id="cetMinus">−5</button>
+              <button class="cet-btn cet-plus" id="cetPlus">＋5</button>
+            </div>
+          </div>
+        </div>
+        <div class="cet-quote">听力 · 阅读 · 写作 · 翻译，每天 50 词，考前不慌张</div>
+      </section>
+
+    </div>
+
+    <!-- 6. 侧边栏 -->
+    <div class="col-side">
+
+      <section class="card card-quote">
+        <svg class="quote-deco" viewBox="0 0 56 56">
+          <circle cx="28" cy="28" r="22" fill="#FCF0D2"/>
+          <circle cx="28" cy="28" r="13" fill="#FFDFA8"/>
+          <g stroke="#DDB86A" stroke-width="3" stroke-linecap="round">
+            <path d="M28 2v6M28 48v6M2 28h6M48 28h6M10 10l4 4M42 42l4 4M46 10l-4 4M14 42l-4 4"/>
+          </g>
+          <circle cx="23" cy="26" r="2" fill="#B98A4A"/><circle cx="33" cy="26" r="2" fill="#B98A4A"/>
+          <path d="M23 31c3 2.6 7 2.6 10 0" stroke="#B98A4A" stroke-width="2" fill="none" stroke-linecap="round"/>
+        </svg>
+        <div class="quote-vertical">低压力备考<br>稳步前进</div>
+        <div class="quote-en">SLOW IS SMOOTH,<br>SMOOTH IS FAST</div>
+      </section>
+
+      <section class="card card-data">
+        <h2><svg class="h-ic" viewBox="0 0 20 20"><ellipse cx="10" cy="5" rx="7" ry="3" fill="#93CDA9"/><path d="M3 5v10c0 1.7 3.1 3 7 3s7-1.3 7-3V5" fill="none" stroke="#93CDA9" stroke-width="2"/><path d="M3 10c0 1.7 3.1 3 7 3s7-1.3 7-3" fill="none" stroke="#93CDA9" stroke-width="2"/></svg>数据备份</h2>
+        <div class="hint-30" id="hint30">
+          <svg width="12" height="12" viewBox="0 0 16 16"><path d="M8 1l7 13H1z" fill="#DDB86A"/><rect x="7.3" y="6" width="1.4" height="4" rx=".7" fill="#fff"/><circle cx="8" cy="12" r="1" fill="#fff"/></svg>
+          数据已积累 30 条，建议导出备份
+        </div>
+        <div class="data-btns">
+          <button class="btn-soft btn-export" id="btnExport">
+            <svg viewBox="0 0 16 16"><path d="M8 2v8M5 7l3 3 3-3M3 13h10" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>导出 JSON 备份
+          </button>
+          <button class="btn-soft btn-import" id="btnImport">
+            <svg viewBox="0 0 16 16"><path d="M8 10V2M5 5l3-3 3 3M3 13h10" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>导入恢复数据
+          </button>
+          <button class="btn-soft btn-clear" id="btnClearSample">
+            <svg viewBox="0 0 16 16"><path d="M3 5h10M6 5V3.5A1.5 1.5 0 0 1 7.5 2h1A1.5 1.5 0 0 1 10 3.5V5M5 5l.7 8h4.6L11 5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>清空示例数据
+          </button>
+        </div>
+        <input type="file" id="importFile" accept="application/json,.json" style="display:none">
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- 合成大西瓜入口 -->
+<button class="btn-game-float" id="btnGameOpen" aria-label="玩合成大西瓜">
+  <svg viewBox="0 0 32 32">
+    <circle cx="16" cy="18" r="11" fill="#8FCB8B"/>
+    <path d="M16 7c0-3 2-4.5 4-5-1.5 2.5-1 4-1 4" stroke="#5E9B5E" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <circle cx="12" cy="16" r="1.5" fill="#3E6B40"/><circle cx="20" cy="16" r="1.5" fill="#3E6B40"/>
+    <path d="M12 21c2.4 2 5.6 2 8 0" stroke="#3E6B40" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  </svg>
+  <i>大西瓜</i>
+</button>
+
+<!-- 合成大西瓜弹窗 -->
+<div class="game-mask" id="gameMask">
+  <div class="game-panel">
+    <div class="game-head">
+      <h3>合成大西瓜</h3>
+      <span class="game-score">得分 <b id="gameScore">0</b> · 最佳 <b id="gameBest">0</b></span>
+      <button class="game-close" id="btnGameClose">✕</button>
+    </div>
+    <canvas id="gameCanvas" width="360" height="500"></canvas>
+    <div class="game-foot">
+      <div class="next-box">下一个：<canvas id="nextCanvas" width="44" height="44"></canvas></div>
+      <button class="btn-restart" id="btnGameRestart">重新开始</button>
+    </div>
+    <div class="game-tip">点击 / 点按画布放置水果 · 相同水果相撞会合成更大的哦</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+ * 公考学习工作台 · 核心逻辑
+ * 架构：数据层(Storage) → 计算层(Calc) → 渲染层(Render)
+ * 渲染函数之间严禁互调，统一由 refreshAll() 调度
+ * ============================================================ */
+(function(){
+  'use strict';
+
+  /* ---------- 数据层 ---------- */
+  var PREFIX = 'wb_gongkao_';
+  var K_CHECKIN = PREFIX + 'checkins';      // { "2026-09-16": ["yan","pan",...] }
+  var K_TODO    = PREFIX + 'todos';         // [{id,text,done,date,carried,sample}]
+  var K_CET     = PREFIX + 'cet4';          // {date, words}
+  var K_SEEDED  = PREFIX + 'seeded';        // 是否已注入示例
+  var K_BEST    = PREFIX + 'melon_best';
+
+  function loadJSON(key, def){
+    try{
+      var raw = localStorage.getItem(key);
+      if(raw === null) return def;
+      var v = JSON.parse(raw);
+      return (v === null || v === undefined) ? def : v;
+    }catch(e){ return def; }
+  }
+  function saveJSON(key, val){
+    try{ localStorage.setItem(key, JSON.stringify(val)); }
+    catch(e){ toast('本地存储写入失败，请检查浏览器设置'); }
+  }
+
+  var CK_MODULES = [
+    {id:'yan',   name:'言语', cls:'ck-c-yan'},
+    {id:'pan',   name:'判断', cls:'ck-c-pan'},
+    {id:'ziliao',name:'资料', cls:'ck-c-zil'},
+    {id:'shu',   name:'数量', cls:'ck-c-shu'},
+    {id:'chang', name:'常识', cls:'ck-c-chang'}
+  ];
+  var EXAM_TARGET = '2027-02-27'; // 广东省考预计时间（静态展示）
+  var CET_GOAL = 50;
+
+  function getCheckins(){ return loadJSON(K_CHECKIN, {}); }
+  function saveCheckins(m){ saveJSON(K_CHECKIN, m); }
+
+  function getTodos(){ return loadJSON(K_TODO, []); }
+  function saveTodos(a){ saveJSON(K_TODO, a); checkDataHint(); }
+
+  function getCet(){ return loadJSON(K_CET, {date:'', words:0}); }
+  function saveCet(o){ saveJSON(K_CET, o); }
+
+  /* ---------- 计算层 ---------- */
+  function fmtDate(d){
+    var m = d.getMonth()+1, day = d.getDate();
+    return d.getFullYear() + '-' + (m<10?'0'+m:m) + '-' + (day<10?'0'+day:day);
+  }
+  function todayStr(){ return fmtDate(new Date()); }
+  function yesterdayStr(){ var d = new Date(); d.setDate(d.getDate()-1); return fmtDate(d); }
+
+  function calcCountdown(){
+    var target = new Date(EXAM_TARGET + 'T09:00:00');
+    var now = new Date(); now.setHours(0,0,0,0);
+    var days = Math.ceil((target - now) / 86400000);
+    return { days: days < 0 ? 0 : days, dateText: EXAM_TARGET.replace('-','年').replace('-','月') + '日' };
+  }
+
+  function calcOverdue(todos){
+    // 昨天及之前未完成的任务顺延到今天（不凭空消失）
+    var t = todayStr(), changed = false;
+    for(var i=0;i<todos.length;i++){
+      if(!todos[i].done && todos[i].date && todos[i].date < t){
+        todos[i].date = t; todos[i].carried = true; changed = true;
+      }
+    }
+    return changed;
+  }
+
+  function calcCetToday(cet){
+    if(cet.date !== todayStr()) return 0;
+    return cet.words || 0;
+  }
+
+  /* ---------- 渲染层 ---------- */
+  var CK_CHECK_SVG = '<svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function renderCountdown(){
+    var c = calcCountdown();
+    document.getElementById('cdNum').innerHTML = c.days + '<small>天</small>';
+    document.getElementById('cdDate').textContent = c.dateText;
+    document.getElementById('cdCal').textContent = c.days > 99 ? 'FIGHT' : 'GO!';
+  }
+
+  function renderCheckin(){
+    var map = getCheckins();
+    var today = map[todayStr()] || [];
+    var grid = document.getElementById('checkinGrid');
+    var html = '';
+    for(var i=0;i<CK_MODULES.length;i++){
+      var m = CK_MODULES[i];
+      var done = today.indexOf(m.id) !== -1;
+      html += '<div class="ck-item ' + m.cls + (done?' done':'') + '" data-ck="' + m.id + '" role="button" tabindex="0" aria-pressed="' + done + '">'
+        + '<div class="ck-dot">' + CK_CHECK_SVG + '</div><span>' + m.name + '</span></div>';
+    }
+    grid.innerHTML = html;
+    var doneCount = today.length;
+    document.getElementById('ckSummaryTxt').textContent = '今日已完成 ' + doneCount + '/' + CK_MODULES.length;
+    document.getElementById('ckBar').style.width = Math.round(doneCount/CK_MODULES.length*100) + '%';
+    if(doneCount === CK_MODULES.length){
+      document.getElementById('ckSummaryTxt').textContent = '全部完成！今天也很棒，早点休息呀';
+    }
+  }
+
+  function renderTodos(){
+    var todos = getTodos();
+    var list = document.getElementById('todoList');
+    var t = todayStr();
+    // 只展示今天的 + 未完成的旧任务兜底显示
+    var shown = todos.filter(function(x){ return x.date === t; });
+    if(shown.length === 0){
+      list.innerHTML = '<li class="todo-empty">还没有任务，先加一条吧～</li>';
+      return;
+    }
+    var html = '';
+    for(var i=0;i<shown.length;i++){
+      var it = shown[i];
+      var tag = '';
+      if(it.done){ tag = '<span class="todo-tag tag-done">已完成</span>'; }
+      else if(it.carried){ tag = '<span class="todo-tag tag-carry">已顺延</span>'; }
+      else { tag = '<span class="todo-tag tag-today">今天</span>'; }
+      html += '<li class="todo-item' + (it.done?' done-t':'') + '" data-id="' + it.id + '">'
+        + '<span class="todo-check" role="checkbox" aria-checked="' + it.done + '">' + CK_CHECK_SVG + '</span>'
+        + '<span class="todo-text">' + escHtml(it.text) + '</span>' + tag
+        + '<button class="todo-del" aria-label="删除任务"><svg viewBox="0 0 16 16"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M5 4.5l.8 9h4.4l.8-9" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
+        + '</li>';
+    }
+    list.innerHTML = html;
+  }
+
+  function escHtml(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function renderCet(){
+    var cet = getCet();
+    var words = calcCetToday(cet);
+    document.getElementById('cetWords').textContent = words;
+    document.getElementById('cetDate').textContent = todayStr();
+    var ratio = Math.min(1, words / CET_GOAL);
+    var C = 2 * Math.PI * 34;
+    document.getElementById('cetRing').setAttribute('stroke-dashoffset', String(C * (1 - ratio)));
+  }
+
+  function renderDataHint(){
+    var n = getTodos().length;
+    var cnt = 0, k;
+    for(k in getCheckins()){ cnt += getCheckins()[k].length; }
+    var el = document.getElementById('hint30');
+    el.style.display = (n + cnt >= 30) ? 'flex' : 'none';
+  }
+  function checkDataHint(){ /* 在 saveTodos 后调用，实际渲染交给 refreshAll */ }
+
+  /* ---------- 统一刷新入口（唯一调度点） ---------- */
+  function refreshAll(){
+    renderCountdown();
+    renderCheckin();
+    renderTodos();
+    renderCet();
+    renderDataHint();
+  }
+
+  /* ---------- 事件处理 ---------- */
+  document.getElementById('checkinGrid').addEventListener('click', function(e){
+    var item = e.target.closest('.ck-item');
+    if(!item) return;
+    toggleCheckin(item.getAttribute('data-ck'));
+  });
+  document.getElementById('checkinGrid').addEventListener('keydown', function(e){
+    if(e.key !== 'Enter' && e.key !== ' ') return;
+    var item = e.target.closest('.ck-item');
+    if(!item) return;
+    e.preventDefault();
+    toggleCheckin(item.getAttribute('data-ck'));
+  });
+
+  function toggleCheckin(id){
+    var map = getCheckins();
+    var t = todayStr();
+    var arr = map[t] || [];
+    var idx = arr.indexOf(id);
+    if(idx === -1){ arr.push(id); toast('「' + nameOf(id) + '」打卡成功，继续保持！'); }
+    else { arr.splice(idx,1); }
+    map[t] = arr;
+    saveCheckins(map);
+    refreshAll();
+  }
+  function nameOf(id){
+    for(var i=0;i<CK_MODULES.length;i++){ if(CK_MODULES[i].id === id) return CK_MODULES[i].name; }
+    return '';
+  }
+
+  function addTodo(){
+    var input = document.getElementById('todoInput');
+    var text = input.value.trim();
+    if(!text){ toast('先写下任务内容吧～'); input.focus(); return; }
+    var todos = getTodos();
+    todos.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+      text: text, done: false, date: todayStr(), carried: false, sample: false
+    });
+    saveTodos(todos);
+    input.value = '';
+    input.focus();
+    refreshAll();
+  }
+  document.getElementById('btnAddTodo').addEventListener('click', addTodo);
+  document.getElementById('todoInput').addEventListener('keydown', function(e){
+    if(e.key === 'Enter') addTodo();
+  });
+
+  document.getElementById('todoList').addEventListener('click', function(e){
+    var li = e.target.closest('.todo-item');
+    if(!li) return;
+    var id = li.getAttribute('data-id');
+    var todos = getTodos();
+    if(e.target.closest('.todo-del')){
+      todos = todos.filter(function(x){ return x.id !== id; });
+      saveTodos(todos);
+    }else if(e.target.closest('.todo-check')){
+      for(var i=0;i<todos.length;i++){
+        if(todos[i].id === id){ todos[i].done = !todos[i].done; break; }
+      }
+      saveTodos(todos);
+    }else{ return; }
+    refreshAll();
+  });
+
+  /* 四级单词 */
+  document.getElementById('cetPlus').addEventListener('click', function(){
+    var cet = getCet();
+    var w = calcCetToday(cet) + 5;
+    saveCet({ date: todayStr(), words: w });
+    if(w >= CET_GOAL) toast('今日 50 词达成！奖励自己一颗小草莓');
+    refreshAll();
+  });
+  document.getElementById('cetMinus').addEventListener('click', function(){
+    var cet = getCet();
+    var w = Math.max(0, calcCetToday(cet) - 5);
+    saveCet({ date: todayStr(), words: w });
+    refreshAll();
+  });
+
+  /* 备份导出 / 导入 */
+  document.getElementById('btnExport').addEventListener('click', function(){
+    var data = {
+      app: 'gongkao-workspace', version: 1, exportedAt: new Date().toISOString(),
+      checkins: getCheckins(), todos: getTodos(), cet4: getCet()
+    };
+    var blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '公考工作台备份-' + todayStr() + '.json';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 400);
+    toast('备份已导出到下载目录');
+  });
+
+  document.getElementById('btnImport').addEventListener('click', function(){
+    document.getElementById('importFile').click();
+  });
+  document.getElementById('importFile').addEventListener('change', function(e){
+    var file = e.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      try{
+        var data = JSON.parse(reader.result);
+        if(!data || typeof data !== 'object' || (!data.checkins && !data.todos)){
+          toast('文件格式不对，请选择本工作台导出的 JSON'); return;
+        }
+        if(!confirm('导入将覆盖当前所有打卡与任务数据，确定继续吗？')) return;
+        if(data.checkins) saveJSON(K_CHECKIN, data.checkins);
+        if(data.todos) saveJSON(K_TODO, data.todos);
+        if(data.cet4) saveJSON(K_CET, data.cet4);
+        toast('导入成功，数据已恢复');
+        refreshAll();
+      }catch(err){ toast('文件解析失败，请重试'); }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  /* 清空示例数据（只清示例标记的数据，不动真实数据） */
+  document.getElementById('btnClearSample').addEventListener('click', function(){
+    var todos = getTodos().filter(function(x){ return !x.sample; });
+    var map = getCheckins();
+    var cleanedMap = {};
+    var t = todayStr();
+    for(var k in map){
+      if(k !== t){ cleanedMap[k] = map[k]; continue; }
+      // 今天的打卡保留用户自己点的（示例注入的言语+资料若未被改动则移除）
+      cleanedMap[k] = map[k];
+    }
+    saveJSON(K_TODO, todos);
+    saveJSON(K_CHECKIN, cleanedMap);
+    saveCet({date:'', words:0});
+    localStorage.setItem(K_SEEDED, 'cleared');
+    toast('示例数据已清空，现在是你自己的工作台啦');
+    refreshAll();
+  });
+
+  /* ---------- Toast ---------- */
+  var toastTimer = null;
+  function toast(msg){
+    var el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    if(toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 2200);
+  }
+
+  /* ---------- 示例数据（首次打开注入，含 1 条逾期顺延） ---------- */
+  function seedSample(){
+    if(localStorage.getItem(K_SEEDED)) return;
+    var t = todayStr(), y = yesterdayStr();
+    saveJSON(K_CHECKIN, (function(){ var m = {}; m[t] = ['yan','ziliao']; return m; })());
+    saveJSON(K_TODO, [
+      { id:'s1', text:'资料分析刷题 30 道（示例，昨天没做完已顺延）', done:false, date:t, carried:true, sample:true },
+      { id:'s2', text:'言语理解专项练习 1 组（示例）', done:false, date:t, carried:false, sample:true },
+      { id:'s3', text:'常识积累：时政热点 10 条（示例）', done:true,  date:t, carried:false, sample:true },
+      { id:'s4', text:'数量关系公式复习（示例）', done:false, date:y, carried:false, sample:true }
+    ]);
+    saveJSON(K_CET, { date:t, words:20 });
+    localStorage.setItem(K_SEEDED, '1');
+  }
+
+  /* ---------- 初始化 ---------- */
+  function init(){
+    seedSample();
+    var todos = getTodos();
+    if(calcOverdue(todos)) saveTodos(todos);
+    refreshAll();
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  }else{
+    init();
+  }
+})();
+/* ============================================================
+ * 合成大西瓜 · 单文件小游戏（手写简化圆形物理引擎，零依赖）
+ * ============================================================ */
+(function(){
+  'use strict';
+
+  var canvas = document.getElementById('gameCanvas');
+  var ctx = canvas.getContext('2d');
+  var nextCvs = document.getElementById('nextCanvas');
+  var nextCtx = nextCvs.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+  var DROP_LINE = 84;
+  var GRAVITY = 0.42, RESTITUTION = 0.18, WALL_REST = 0.35;
+
+  /* 11 级水果：葡萄 → 西瓜 */
+  var FRUITS = [
+    {name:'葡萄',   r:13, fill:'#B39DDB', dark:'#8E7CC3'},
+    {name:'樱桃',   r:17, fill:'#F09CA4', dark:'#D97880'},
+    {name:'橘子',   r:23, fill:'#FBC98B', dark:'#E0A860'},
+    {name:'柠檬',   r:29, fill:'#F7E88E', dark:'#D9C45F'},
+    {name:'猕猴桃', r:36, fill:'#C3DFA0', dark:'#9BBF74'},
+    {name:'番茄',   r:44, fill:'#F59B8B', dark:'#D67563'},
+    {name:'桃子',   r:53, fill:'#F8C1C6', dark:'#E09AA2'},
+    {name:'菠萝',   r:63, fill:'#FCD979', dark:'#DDB24B'},
+    {name:'椰子',   r:74, fill:'#D9C6A5', dark:'#B49F7C'},
+    {name:'半个瓜', r:86, fill:'#A8DF9E', dark:'#7CBF6E'},
+    {name:'大西瓜', r:98, fill:'#7FCB8B', dark:'#54A362'}
+  ];
+  var DROPABLE = 5; // 只会掉落前 5 种
+
+  var balls = [];
+  var score = 0;
+  var best = parseInt(localStorage.getItem('wb_gongkao_melon_best') || '0', 10) || 0;
+  var currentTier = 0, nextTier = 0;
+  var gameOver = false;
+  var running = false;
+
+  var $score = document.getElementById('gameScore');
+  var $best = document.getElementById('gameBest');
+
+  function randTier(){ return Math.floor(Math.random() * DROPABLE); }
+
+  function resetGame(){
+    balls = [];
+    score = 0;
+    gameOver = false;
+    currentTier = randTier();
+    nextTier = randTier();
+    updateHUD();
+    drawNext();
+  }
+
+  function updateHUD(){
+    $score.textContent = score;
+    $best.textContent = best;
+  }
+
+  function drawNext(){
+    nextCtx.clearRect(0,0,44,44);
+    var f = FRUITS[nextTier];
+    var scale = Math.min(1, 17 / f.r);
+    drawFruit(nextCtx, 22, 22, f.r * scale, nextTier);
+  }
+
+  function drawFruit(c, x, y, r, tier){
+    var f = FRUITS[tier];
+    c.beginPath();
+    c.arc(x, y, r, 0, Math.PI*2);
+    c.fillStyle = f.fill;
+    c.fill();
+    c.lineWidth = Math.max(2, r*0.08);
+    c.strokeStyle = f.dark;
+    c.stroke();
+    /* 可爱小表情 */
+    var ex = r*0.32, ey = -r*0.12, er = Math.max(1.6, r*0.09);
+    c.fillStyle = '#4E5A4E';
+    c.beginPath(); c.arc(x-ex, y+ey, er, 0, Math.PI*2); c.fill();
+    c.beginPath(); c.arc(x+ex, y+ey, er, 0, Math.PI*2); c.fill();
+    /* 高光 */
+    c.fillStyle = 'rgba(255,255,255,.5)';
+    c.beginPath(); c.arc(x - r*0.35, y - r*0.4, r*0.14, 0, Math.PI*2); c.fill();
+    /* 微笑 */
+    if(tier >= 2){
+      c.beginPath();
+      c.arc(x, y + r*0.18, r*0.24, 0.15*Math.PI, 0.85*Math.PI);
+      c.strokeStyle = '#4E5A4E';
+      c.lineWidth = Math.max(1.4, r*0.06);
+      c.lineCap = 'round';
+      c.stroke();
+    }
+    if(tier === FRUITS.length - 1){
+      /* 大西瓜纹理 */
+      c.strokeStyle = 'rgba(60,120,70,.5)';
+      c.lineWidth = 2;
+      for(var i=-1;i<=1;i++){
+        c.beginPath();
+        c.moveTo(x + i*r*0.45, y - r*0.85);
+        c.quadraticCurveTo(x + i*r*0.75, y, x + i*r*0.45, y + r*0.85);
+        c.stroke();
+      }
+    }
+  }
+
+  function spawn(x){
+    var f = FRUITS[currentTier];
+    var cx = Math.max(f.r + 2, Math.min(W - f.r - 2, x));
+    balls.push({ x:cx, y:44, vx:0, vy:1, r:f.r, tier:currentTier, age:0 });
+    currentTier = nextTier;
+    nextTier = randTier();
+    drawNext();
+  }
+
+  function mergeBalls(a, b){
+    var nt = a.tier + 1;
+    var f = FRUITS[nt];
+    balls.push({
+      x:(a.x + b.x)/2, y:(a.y + b.y)/2,
+      vx:(a.vx + b.vx)/2, vy:Math.min((a.vy + b.vy)/2, -0.5),
+      r:f.r, tier:nt, age:0
+    });
+    score += (nt + 1) * 2;
+    if(score > best){ best = score; localStorage.setItem('wb_gongkao_melon_best', String(best)); }
+    updateHUD();
+    if(nt === FRUITS.length - 1){ toastGame('合成了大西瓜！你太厉害啦'); }
+  }
+
+  function resolveCollisions(){
+    var i, j, a, b, dx, dy, dist, minDist, overlap;
+    for(var iter=0; iter<3; iter++){
+      for(i=0;i<balls.length;i++){
+        for(j=i+1;j<balls.length;j++){
+          a = balls[i]; b = balls[j];
+          dx = b.x - a.x; dy = b.y - a.y;
+          dist = Math.sqrt(dx*dx + dy*dy) || 0.01;
+          minDist = a.r + b.r;
+          if(dist >= minDist) continue;
+          /* 同级 → 合成 */
+          if(a.tier === b.tier && a.tier < FRUITS.length - 1){
+            mergeBalls(a, b);
+            balls.splice(j,1);
+            balls.splice(i,1);
+            return; // 一帧合一次，下一帧继续
+          }
+          /* 分离 */
+          overlap = (minDist - dist) / 2;
+          var nx = dx/dist, ny = dy/dist;
+          a.x -= nx*overlap; a.y -= ny*overlap;
+          b.x += nx*overlap; b.y += ny*overlap;
+          /* 沿法线的速度处理 */
+          var rvn = (b.vx - a.vx)*nx + (b.vy - a.vy)*ny;
+          if(rvn < 0){
+            var imp = -(1 + RESTITUTION) * rvn / 2;
+            a.vx -= imp*nx; a.vy -= imp*ny;
+            b.vx += imp*nx; b.vy += imp*ny;
+          }
+        }
+      }
+    }
+  }
+
+  function stepPhysics(){
+    var i, b;
+    for(i=0;i<balls.length;i++){
+      b = balls[i];
+      b.vy += GRAVITY;
+      b.vx *= 0.995;
+      b.x += b.vx;
+      b.y += b.vy;
+      b.age++;
+      /* 墙壁与地面 */
+      if(b.x - b.r < 0){ b.x = b.r; b.vx = Math.abs(b.vx) * WALL_REST; }
+      if(b.x + b.r > W){ b.x = W - b.r; b.vx = -Math.abs(b.vx) * WALL_REST; }
+      if(b.y + b.r > H){ b.y = H - b.r; b.vy = -Math.abs(b.vy) * WALL_REST * 0.8; if(Math.abs(b.vy) < 0.8) b.vy = 0; }
+    }
+    resolveCollisions();
+    /* 检查游戏结束：堆过顶线且稳定 */
+    for(i=0;i<balls.length;i++){
+      b = balls[i];
+      if(b.age > 90 && b.y - b.r < DROP_LINE && Math.abs(b.vy) < 1.2){
+        endGame();
+        return;
+      }
+    }
+  }
+
+  function endGame(){
+    gameOver = true;
+    running = false;
+  }
+
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    /* 背景 */
+    ctx.fillStyle = '#FDF8F4';
+    ctx.fillRect(0,0,W,H);
+    /* 顶线 */
+    ctx.strokeStyle = 'rgba(232,162,188,.45)';
+    ctx.setLineDash([6,6]);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, DROP_LINE); ctx.lineTo(W, DROP_LINE);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(232,162,188,.7)';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('不能堆过这条线哦', W-10, DROP_LINE-6);
+    /* 水果 */
+    for(var i=0;i<balls.length;i++){
+      drawFruit(ctx, balls[i].x, balls[i].y, balls[i].r, balls[i].tier);
+    }
+    /* 当前待放水果跟随提示 */
+    if(!gameOver){
+      var f = FRUITS[currentTier];
+      ctx.globalAlpha = 0.35;
+      ctx.beginPath();
+      ctx.moveTo(0, 40); ctx.lineTo(W, 40);
+      ctx.strokeStyle = 'rgba(147,185,217,.5)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    if(gameOver){
+      ctx.fillStyle = 'rgba(110,95,108,.55)';
+      ctx.fillRect(0,0,W,H);
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 26px sans-serif';
+      ctx.fillText('这一局结束啦', W/2, H/2 - 20);
+      ctx.font = '14px sans-serif';
+      ctx.fillText('得分 ' + score + ' · 最佳 ' + best, W/2, H/2 + 10);
+      ctx.fillText('点「重新开始」再来一局吧', W/2, H/2 + 36);
+    }
+  }
+
+  function loop(){
+    if(running){
+      stepPhysics();
+    }
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  function toastGame(msg){
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 2200);
+  }
+
+  /* ---------- 交互 ---------- */
+  canvas.addEventListener('pointerdown', function(e){
+    if(gameOver || !running) return;
+    var rect = canvas.getBoundingClientRect();
+    var x = (e.clientX - rect.left) * (W / rect.width);
+    spawn(x);
+  });
+
+  var mask = document.getElementById('gameMask');
+  document.getElementById('btnGameOpen').addEventListener('click', function(){
+    mask.classList.add('open');
+    if(!running && !gameOver){
+      resetGame();
+      running = true;
+    }
+  });
+  document.getElementById('btnGameClose').addEventListener('click', function(){
+    mask.classList.remove('open');
+  });
+  mask.addEventListener('click', function(e){
+    if(e.target === mask) mask.classList.remove('open');
+  });
+  document.getElementById('btnGameRestart').addEventListener('click', function(){
+    resetGame();
+    running = true;
+  });
+
+  /* 启动渲染循环（物理仅在面板打开时推进） */
+  loop();
+})();
+</script>
+</body>
+</html>
